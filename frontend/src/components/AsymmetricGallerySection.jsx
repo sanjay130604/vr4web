@@ -1,0 +1,631 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Maximize2, Image as ImageIcon } from 'lucide-react';
+import galleryService from '../services/galleryService';
+import { getImageUrl } from '../utils/imageUrl';
+
+// Interactive 3D square card: mouse tilt, image parallax & smooth spring reset.
+function GalleryCard3D({ item, index, onOpen, className = '' }) {
+  const cardRef = useRef(null);
+  const [transformStyle, setTransformStyle] = useState('');
+  const [imageStyle, setImageStyle] = useState('');
+  const [sheenStyle, setSheenStyle] = useState({ opacity: 0, x: 50, y: 50 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [imgSrc, setImgSrc] = useState(item.img);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    setImgSrc(item.img);
+  }, [item.img]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+    const sheenX = ((e.clientX - rect.left) / rect.width) * 100;
+    const sheenY = ((e.clientY - rect.top) / rect.height) * 100;
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const rotX = -y * 8;
+      const rotY = x * 8;
+      const imgX = -x * 8;
+      const imgY = -y * 8;
+
+      setTransformStyle(
+        `perspective(1200px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-7px) scale3d(1.018, 1.018, 1.018)`
+      );
+      setImageStyle(`scale(1.06) translate3d(${imgX.toFixed(1)}px, ${imgY.toFixed(1)}px, 0px)`);
+      setSheenStyle({ opacity: 0.18, x: sheenX, y: sheenY });
+    });
+  }, []);
+
+  const handleMouseEnter = () => setIsHovered(true);
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    setTransformStyle('perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px) scale3d(1, 1, 1)');
+    setImageStyle('scale(1) translate3d(0px, 0px, 0px)');
+    setSheenStyle({ opacity: 0, x: 50, y: 50 });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 32 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-30px' }}
+      transition={{ duration: 0.85, delay: (index % 4) * 0.07, ease: [0.16, 1, 0.3, 1] }}
+      className={`relative group cursor-pointer select-none ${className}`}
+      onClick={() => onOpen(index)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen(index);
+        }
+      }}
+      aria-label={`View ${item.title}`}
+    >
+      <div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          transform: transformStyle || 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+          transition: isHovered
+            ? 'transform 0.12s ease-out, box-shadow 0.35s ease-out'
+            : 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.65s ease-out',
+        }}
+        className="w-full aspect-square overflow-hidden rounded-[18px] sm:rounded-[20px] bg-slate-100 relative
+          border border-black/[0.05]
+          shadow-[0_10px_28px_-10px_rgba(0,0,0,0.07),0_4px_10px_-4px_rgba(0,0,0,0.03)]
+          hover:shadow-[0_24px_50px_-12px_rgba(232,137,12,0.18),0_12px_24px_-6px_rgba(0,0,0,0.06)]
+          hover:border-[#E8890C]/25 transition-all duration-300"
+      >
+        {/* Full image */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-200">
+          <img
+            src={imgSrc}
+            alt={item.title}
+            onError={() => {
+              if (imgSrc !== item.fallback) setImgSrc(item.fallback);
+            }}
+            loading={index < 4 ? 'eager' : 'lazy'}
+            style={{
+              objectPosition: item.focalPoint || 'center center',
+              transform: imageStyle || 'scale(1) translate3d(0,0,0)',
+              transition: isHovered
+                ? 'transform 0.14s ease-out'
+                : 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+            className="w-full h-full object-cover will-change-transform"
+          />
+        </div>
+
+        {/* Cursor sheen */}
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300 mix-blend-overlay"
+          style={{
+            opacity: sheenStyle.opacity,
+            background: `radial-gradient(circle 280px at ${sheenStyle.x}% ${sheenStyle.y}%, rgba(255, 255, 255, 0.95), transparent 75%)`,
+          }}
+        />
+
+        {/* Bottom gradient on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+        {/* Expand icon */}
+        <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-[#E8890C] flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all duration-300 shadow-md border border-white/60">
+          <Maximize2 className="w-3.5 h-3.5" />
+        </div>
+
+        {/* Hover caption */}
+        <div className="absolute bottom-3 left-3 right-12 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all duration-300 pointer-events-none">
+          <p className="text-white text-xs font-bold drop-shadow-sm truncate">{item.title}</p>
+          <p className="text-white text-[11px] font-medium drop-shadow-xs truncate">{item.location || item.category}</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function ArrowButton({ dir, onClick }) {
+  return (
+    <button
+      type="button"
+      aria-label={dir === 'prev' ? 'Previous image' : 'Next image'}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`absolute top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#0F3D2E] shadow-lg transition hover:scale-110 hover:bg-white sm:h-12 sm:w-12 min-[1920px]:h-16 min-[1920px]:w-16 cursor-pointer ${
+        dir === 'prev' ? 'left-2 sm:left-5' : 'right-2 sm:right-5'
+      }`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-5 w-5 sm:h-6 sm:w-6 min-[1920px]:h-8 min-[1920px]:w-8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {dir === 'prev' ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
+      </svg>
+    </button>
+  );
+}
+
+export default function GallerySection({ onExploreClick }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
+  const touchX = useRef(null);
+  const navigate = useNavigate();
+
+  // Fetch live featured gallery items from MongoDB backend
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFeatured = async () => {
+      try {
+        setLoading(true);
+        const res = await galleryService.getFeaturedGalleryImages();
+        if (res && res.success && Array.isArray(res.data) && isMounted) {
+          const mapped = res.data.map((d, index) => ({
+            id: d._id || `item-${index}`,
+            number: String(index + 1).padStart(2, '0'),
+            title: d.title,
+            category: (d.category || 'FEATURED').toUpperCase(),
+            location: d.category || 'VR4Web Showcase',
+            desc: d.description || d.caption || '',
+            img: getImageUrl(d.image?.url || d.imageUrl, '/banner/3.jpg'),
+            fallback: '/banner/3.jpg',
+            focalPoint: 'center center',
+          }));
+          setItems(mapped);
+        }
+      } catch (err) {
+        console.warn('[FeaturedGallery] Could not fetch live featured images:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchFeatured();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Auto-advance mobile slide every 2.5 seconds
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const timer = setInterval(() => {
+      setMobileSlideIndex((prev) => (prev + 1) % items.length);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [items.length]);
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (lightboxIndex === null || items.length === 0) return;
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev + 1) % items.length);
+      }
+      if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) => (prev - 1 + items.length) % items.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, items.length]);
+
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    document.body.style.overflow = lightboxIndex !== null ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [lightboxIndex]);
+
+  // Warm the cache for neighbouring photos in lightbox
+  useEffect(() => {
+    if (lightboxIndex === null || items.length === 0) return;
+    const total = items.length;
+    [items[(lightboxIndex + 1) % total], items[(lightboxIndex - 1 + total) % total]].forEach((it) => {
+      if (it && it.img) new Image().src = it.img;
+    });
+  }, [lightboxIndex, items]);
+
+  const activeLightboxItem =
+    lightboxIndex !== null && items[lightboxIndex] ? items[lightboxIndex] : null;
+
+  const handleExplore = () => {
+    if (onExploreClick) onExploreClick();
+    else navigate('/gallery');
+  };
+
+  return (
+    <section className="relative w-full bg-white text-[#111111] overflow-hidden pt-28 xs:pt-32 sm:pt-32 md:pt-28 lg:pt-20 pb-8 sm:pb-10 md:pb-12 lg:pb-14 font-sans">
+      {/* Ambient background gradients */}
+      <div className="absolute top-0 left-1/4 w-[650px] h-[650px] bg-gradient-to-br from-[#E8890C]/[0.035] to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[550px] h-[550px] bg-gradient-to-tl from-[#0F3D2E]/[0.035] to-transparent rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-[1560px] mx-auto px-4 xs:px-5 sm:px-6 md:px-8 lg:px-8 xl:px-12 relative z-10">
+        {/* ============================================================== */}
+        {/* LOADING STATE SKELETONS                                        */}
+        {/* ============================================================== */}
+        {loading ? (
+          <div className="hidden xl:grid xl:grid-cols-12 gap-5 2xl:gap-6 items-stretch">
+            {/* Column 1 */}
+            <div className="xl:col-span-3 flex flex-col justify-between gap-5">
+              <div className="pr-2">
+                <div className="w-24 h-4 bg-slate-200 rounded animate-pulse mb-3" />
+                <div className="w-48 h-12 bg-slate-200 rounded animate-pulse mb-3" />
+                <div className="w-64 h-8 bg-slate-200 rounded animate-pulse mb-4" />
+                <div className="w-36 h-10 bg-slate-200 rounded-xl animate-pulse" />
+              </div>
+              <div className="w-full aspect-square rounded-[20px] bg-slate-100 animate-pulse" />
+            </div>
+            {/* Columns 2 - 5 skeletons */}
+            {[2, 2, 2, 3].map((span, colIdx) => (
+              <div key={colIdx} className={`xl:col-span-${span} flex flex-col justify-between gap-5 2xl:gap-6`}>
+                <div className="w-full aspect-square rounded-[20px] bg-slate-100 animate-pulse" />
+                <div className="w-full aspect-square rounded-[20px] bg-slate-100 animate-pulse" />
+                {span === 2 && <div className="w-full aspect-square rounded-[20px] bg-slate-100 animate-pulse" />}
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          /* ============================================================== */
+          /* EMPTY FALLBACK STATE                                           */
+          /* ============================================================== */
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 py-12 px-6 rounded-3xl bg-slate-50 border border-slate-200/80">
+            <div className="max-w-xl">
+              <span className="text-[#E8890C] font-extrabold text-xs tracking-widest uppercase mb-1.5 block">
+                FEATURED GALLERY
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0F3D2E] tracking-tight">
+                Beyond Color. <span className="text-[#E8890C]">Pure Emotion.</span>
+              </h2>
+              <p className="text-sm text-slate-600 font-medium mt-2 leading-relaxed">
+                Our creative gallery is currently being updated with fresh enterprise case studies and digital transformation highlights.
+              </p>
+              <button
+                onClick={handleExplore}
+                className="mt-5 px-5 py-2.5 rounded-xl bg-[#E8890C] hover:bg-[#0F3D2E] text-white font-bold text-sm inline-flex items-center gap-2 transition-all shadow-md cursor-pointer"
+              >
+                <span>View Full Public Gallery</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="w-20 h-20 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-xs">
+              <ImageIcon className="w-10 h-10" />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* ============================================================== */}
+            {/* DESKTOP (1280px and up): Asymmetric 5-column layout             */}
+            {/* ============================================================== */}
+            <div className="hidden xl:grid xl:grid-cols-12 gap-5 2xl:gap-6 items-stretch">
+              {/* COLUMN 1 (3 cols): hero text + card 01 */}
+              <div className="xl:col-span-3 flex flex-col justify-between gap-5">
+                <motion.div
+                  initial={{ opacity: 0, y: 25 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                  className="pr-2"
+                >
+                  <div className="flex flex-col items-start mb-3">
+                    <span className="text-[#E8890C] font-extrabold text-[12px] xl:text-[13px] tracking-[0.25em] uppercase mb-1.5">
+                      FEATURED GALLERY
+                    </span>
+                    <div className="w-12 h-1 bg-[#0F3D2E] rounded-full"></div>
+                  </div>
+
+                  <h2 className="text-[44px] 2xl:text-[56px] font-extrabold leading-[1.05] tracking-tight mb-3">
+                    <span className="text-[#E8890C] block">Beyond Color.</span>
+                    <span className="text-[#0F3D2E] block mt-0.5">Pure Emotion.</span>
+                  </h2>
+
+                  <p className="text-[14px] 2xl:text-[15px] text-[#111111] font-medium leading-relaxed max-w-[320px] mb-4">
+                    Timeless visual narratives and spatial perspectives that speak without words.
+                  </p>
+
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleExplore}
+                    className="group pl-5 pr-2 py-2 rounded-xl bg-[#E8890C] hover:bg-[#0F3D2E] text-white font-medium text-[14px] inline-flex items-center gap-3 transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer"
+                  >
+                    <span>See the Stories</span>
+                    <div className="w-8 h-8 rounded-full bg-white/20 group-hover:bg-white text-white group-hover:text-[#0F3D2E] flex items-center justify-center transition-all duration-300">
+                      <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                    </div>
+                  </motion.button>
+                </motion.div>
+
+                {items[0] && (
+                  <GalleryCard3D item={items[0]} index={0} onOpen={setLightboxIndex} />
+                )}
+              </div>
+
+              {/* COLUMN 2 (2 cols): cards 02, 08, 09 */}
+              <div className="xl:col-span-2 flex flex-col justify-between gap-5 2xl:gap-6">
+                {items[1] && <GalleryCard3D item={items[1]} index={1} onOpen={setLightboxIndex} />}
+                {items[7] && <GalleryCard3D item={items[7]} index={7} onOpen={setLightboxIndex} />}
+                {items[8] && <GalleryCard3D item={items[8]} index={8} onOpen={setLightboxIndex} />}
+              </div>
+
+              {/* COLUMN 3 (2 cols): cards 03, 04, 10 */}
+              <div className="xl:col-span-2 flex flex-col justify-between gap-5 2xl:gap-6">
+                {items[2] && <GalleryCard3D item={items[2]} index={2} onOpen={setLightboxIndex} />}
+                {items[3] && <GalleryCard3D item={items[3]} index={3} onOpen={setLightboxIndex} />}
+                {items[9] && <GalleryCard3D item={items[9]} index={9} onOpen={setLightboxIndex} />}
+              </div>
+
+              {/* COLUMN 4 (2 cols): cards 05, 11, 12 */}
+              <div className="xl:col-span-2 flex flex-col justify-between gap-5 2xl:gap-6">
+                {items[4] && <GalleryCard3D item={items[4]} index={4} onOpen={setLightboxIndex} />}
+                {items[10] && <GalleryCard3D item={items[10]} index={10} onOpen={setLightboxIndex} />}
+                {items[11] && <GalleryCard3D item={items[11]} index={11} onOpen={setLightboxIndex} />}
+              </div>
+
+              {/* COLUMN 5 (3 cols): cards 06, 07 */}
+              <div className="xl:col-span-3 flex flex-col justify-between gap-5 2xl:gap-6">
+                {items[5] && <GalleryCard3D item={items[5]} index={5} onOpen={setLightboxIndex} />}
+                {items[6] && <GalleryCard3D item={items[6]} index={6} onOpen={setLightboxIndex} />}
+              </div>
+            </div>
+
+            {/* ============================================================== */}
+            {/* TABLET / SMALL LAPTOP (768px - 1279px): Grid of items         */}
+            {/* ============================================================== */}
+            <div className="hidden md:block xl:hidden">
+              <motion.div
+                initial={{ opacity: 0, y: 25 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="mb-8 lg:mb-10 flex flex-row items-end justify-between gap-8"
+              >
+                <div className="max-w-[640px]">
+                  <div className="flex flex-col items-start mb-3 sm:mb-4">
+                    <span className="text-[#E8890C] font-extrabold text-[11px] sm:text-[12px] xl:text-[13px] tracking-[0.25em] uppercase mb-1.5">
+                      FEATURED GALLERY
+                    </span>
+                    <div className="w-12 h-1 bg-[#0F3D2E] rounded-full"></div>
+                  </div>
+
+                  <h2 className="text-[34px] md:text-[38px] lg:text-[48px] xl:text-[56px] 2xl:text-[64px] font-extrabold leading-[1.05] tracking-tight mb-4">
+                    <span className="text-[#E8890C] block">Beyond Color.</span>
+                    <span className="text-[#0F3D2E] block mt-0.5 sm:mt-1">Pure Emotion.</span>
+                  </h2>
+
+                  <p className="text-[13px] lg:text-[14px] xl:text-[15px] 2xl:text-[16px] text-[#111111] font-medium leading-relaxed max-w-[420px] mb-6">
+                    Timeless visual narratives and spatial perspectives that speak without words.
+                  </p>
+
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleExplore}
+                    className="group pl-5 pr-2 py-2 rounded-xl bg-[#E8890C] hover:bg-[#0F3D2E] text-white font-medium text-[13.5px] xl:text-[14px] inline-flex items-center gap-3 transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer"
+                  >
+                    <span>See the Stories</span>
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 group-hover:bg-white text-white group-hover:text-[#0F3D2E] flex items-center justify-center transition-all duration-300">
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                    </div>
+                  </motion.button>
+                </div>
+              </motion.div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
+                {items.map((item, i) => (
+                  <GalleryCard3D key={item.id} item={item} index={i} onOpen={setLightboxIndex} />
+                ))}
+              </div>
+            </div>
+
+            {/* ============================================================== */}
+            {/* MOBILE (up to 767px): Auto-advancing Carousel                   */}
+            {/* ============================================================== */}
+            <div className="block md:hidden">
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="mb-6 pt-4 xs:pt-6"
+              >
+                <div className="flex flex-col items-start mb-2">
+                  <span className="text-[#E8890C] font-extrabold text-[11px] tracking-[0.22em] uppercase mb-1">
+                    FEATURED GALLERY
+                  </span>
+                  <div className="w-10 h-1 bg-[#0F3D2E] rounded-full mb-2"></div>
+                </div>
+                <h2 className="text-2xl xs:text-3xl font-extrabold leading-[1.1] tracking-tight mb-2.5">
+                  <span className="text-[#E8890C] block">Beyond Color.</span>
+                  <span className="text-[#0F3D2E] block mt-0.5">Pure Emotion.</span>
+                </h2>
+                <p className="text-xs xs:text-sm text-[#111111] font-medium leading-relaxed mb-4">
+                  Timeless visual narratives and spatial perspectives that speak without words.
+                </p>
+                <button
+                  onClick={handleExplore}
+                  className="group pl-4 pr-1.5 py-1.5 rounded-xl bg-[#E8890C] hover:bg-[#0F3D2E] text-white font-medium text-xs inline-flex items-center gap-2.5 transition-all duration-300 shadow-md cursor-pointer"
+                >
+                  <span>See the Stories</span>
+                  <div className="w-6 h-6 rounded-full bg-white/20 group-hover:bg-white text-white group-hover:text-[#0F3D2E] flex items-center justify-center transition-all duration-300">
+                    <ArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </div>
+                </button>
+              </motion.div>
+
+              {items.length > 0 && items[mobileSlideIndex] && (
+                <div className="relative w-full aspect-square">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={items[mobileSlideIndex].id}
+                      initial={{ opacity: 0, x: 35 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -35 }}
+                      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                      className="w-full"
+                    >
+                      <GalleryCard3D
+                        item={items[mobileSlideIndex]}
+                        index={mobileSlideIndex}
+                        onOpen={() => setLightboxIndex(mobileSlideIndex)}
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Progress dots */}
+              {items.length > 1 && (
+                <div className="flex items-center justify-center gap-1.5 mt-4">
+                  {items.map((it, i) => (
+                    <button
+                      key={it.id}
+                      onClick={() => setMobileSlideIndex(i)}
+                      aria-label={`Show ${it.title}`}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        i === mobileSlideIndex ? 'w-6 bg-[#E8890C]' : 'w-1.5 bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ============================================================== */}
+      {/* LIGHTBOX FULLSCREEN MODAL                                      */}
+      {/* ============================================================== */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {activeLightboxItem && (
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-label={activeLightboxItem.title}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                onClick={() => setLightboxIndex(null)}
+                onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+                onTouchEnd={(e) => {
+                  if (touchX.current === null) return;
+                  const dx = e.changedTouches[0].clientX - touchX.current;
+                  touchX.current = null;
+                  if (Math.abs(dx) > 50) {
+                    if (dx > 0) {
+                      setLightboxIndex((prev) => (prev - 1 + items.length) % items.length);
+                    } else {
+                      setLightboxIndex((prev) => (prev + 1) % items.length);
+                    }
+                  }
+                }}
+                className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 px-3 py-14 backdrop-blur-sm sm:px-20"
+              >
+                {/* Counter */}
+                <div className="absolute left-4 top-4 z-20 rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white sm:left-6 sm:top-5 sm:text-sm">
+                  {lightboxIndex + 1} / {items.length}
+                </div>
+
+                {/* Close Button */}
+                <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex(null);
+                  }}
+                  className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#0F3D2E] shadow-lg transition hover:scale-110 hover:bg-white sm:right-5 sm:top-4 sm:h-12 sm:w-12 cursor-pointer"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                  </svg>
+                </button>
+
+                {/* Prev / Next arrows */}
+                {items.length > 1 && (
+                  <>
+                    <ArrowButton
+                      dir="prev"
+                      onClick={() => setLightboxIndex((prev) => (prev - 1 + items.length) % items.length)}
+                    />
+                    <ArrowButton
+                      dir="next"
+                      onClick={() => setLightboxIndex((prev) => (prev + 1) % items.length)}
+                    />
+                  </>
+                )}
+
+                {/* Big Image */}
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={activeLightboxItem.id || lightboxIndex}
+                    src={activeLightboxItem.img}
+                    alt={activeLightboxItem.title}
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    onClick={(e) => e.stopPropagation()}
+                    draggable={false}
+                    className="max-h-[75vh] w-auto max-w-full rounded-2xl bg-gray-900 object-contain shadow-2xl min-[1920px]:max-h-[80vh]"
+                  />
+                </AnimatePresence>
+
+                {/* Caption */}
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-4 max-w-[90vw] text-center text-white sm:max-w-[700px] min-[1920px]:max-w-[1000px]"
+                >
+                  <h3 className="text-base font-extrabold sm:text-xl min-[1920px]:text-3xl text-white">
+                    {activeLightboxItem.title}
+                  </h3>
+                  {activeLightboxItem.desc && (
+                    <p className="mt-1 text-xs text-white/80 sm:text-sm min-[1920px]:text-xl">
+                      {activeLightboxItem.desc}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+    </section>
+  );
+}
+
+// Alias so either import name works
+export { GallerySection as AsymmetricGallerySection };

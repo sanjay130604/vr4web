@@ -1,0 +1,751 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, Globe, Handshake, ArrowRight, Lightbulb, Rocket, RefreshCw, Search, PenTool, Code2, Headphones } from 'lucide-react';
+import ServicesSection from './ServicesSection';
+import SectorsSection from './SectorsSection';
+import ProductShowcase from './ProductShowcase';
+import WhyChooseUsSection from './WhyChooseUsSection';
+import AsymmetricGallerySection from '../../components/AsymmetricGallerySection';
+import OurClientsSection from '../../components/OurClientsSection';
+import CtaSection from '../../components/CtaSection';
+import TestimonialsSection from '../../components/TestimonialsSection';
+
+const mapLocations = [
+  {
+    name: 'Perth',
+    pos: {
+      320: { top: '67%', left: '27%' },
+      375: { top: '69%', left: '28%' },
+      425: { top: '71%', left: '28%' },
+      768: { top: '61%', left: '23%' },
+      1024: { top: '65%', left: '30%' },
+      1440: { top: '62%', left: '30%' },
+      2560: { top: '64%', left: '15%' },
+    },
+    labelPos: {
+      320: { top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '6px' },
+      375: { top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '6px' },
+      425: { top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '6px' },
+      768: { top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '6px' },
+      1024: { top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '6px' },
+      1440: { top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '8px' },
+      2560: { top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '10px' },
+    }
+  },
+  {
+    name: 'Adelaide',
+    pos: {
+      320: { top: '69%', left: '58%' },
+      375: { top: '69%', left: '57%' },
+      425: { top: '72%', left: '57.5%' },
+      768: { top: '65%', left: '53%' },
+      1024: { top: '68%', left: '54%' },
+      1440: { top: '64%', left: '52%' },
+      2560: { top: '66%', left: '50.5%' },
+    },
+    labelPos: {
+      320: { bottom: '100%', right: '50%', marginBottom: '4px', marginRight: '-12px' },
+      375: { bottom: '100%', right: '50%', marginBottom: '4px', marginRight: '-12px' },
+      425: { bottom: '100%', right: '50%', marginBottom: '4px', marginRight: '-12px' },
+      768: { bottom: '100%', right: '50%', marginBottom: '4px', marginRight: '-12px' },
+      1024: { bottom: '100%', right: '50%', marginBottom: '4px', marginRight: '-12px' },
+      1440: { bottom: '100%', right: '50%', marginBottom: '5px', marginRight: '-14px' },
+      2560: { bottom: '100%', right: '50%', marginBottom: '6px', marginRight: '-16px' },
+    }
+  },
+  {
+    name: 'Melbourne',
+    pos: {
+      320: { top: '72.5%', left: '68%' },
+      375: { top: '75%', left: '66%' },
+      425: { top: '78%', left: '65.5%' },
+      768: { top: '72%', left: '61%' },
+      1024: { top: '82%', left: '60%' },
+      1440: { top: '73%', left: '60.5%' },
+      2560: { top: '74%', left: '59.5%' },
+    },
+    labelPos: {
+      320: { top: '100%', right: '50%', marginTop: '4px', marginRight: '-12px' },
+      375: { top: '100%', right: '50%', marginTop: '4px', marginRight: '-12px' },
+      425: { top: '100%', right: '50%', marginTop: '4px', marginRight: '-12px' },
+      768: { top: '100%', right: '50%', marginTop: '4px', marginRight: '-12px' },
+      1024: { top: '100%', right: '50%', marginTop: '4px', marginRight: '-12px' },
+      1440: { top: '100%', right: '50%', marginTop: '5px', marginRight: '-14px' },
+      2560: { top: '100%', right: '50%', marginTop: '6px', marginRight: '-16px' },
+    }
+  },
+  {
+    name: 'Sydney',
+    pos: {
+      320: { top: '68%', left: '77%' },
+      375: { top: '70%', left: '77%' },
+      425: { top: '72%', left: '77%' },
+      768: { top: '65%', left: '75%' },
+      1024: { top: '68.5%', left: '70%' },
+      1440: { top: '63%', left: '69.5%' },
+      2560: { top: '63.5%', left: '68.5%' },
+    },
+    labelPos: {
+      320: { top: '50%', left: '100%', transform: 'translateY(-50%)', marginLeft: '6px' },
+      375: { top: '50%', left: '100%', transform: 'translateY(-50%)', marginLeft: '6px' },
+      425: { top: '50%', left: '100%', transform: 'translateY(-50%)', marginLeft: '6px' },
+      768: { top: '50%', left: '100%', transform: 'translateY(-50%)', marginLeft: '6px' },
+      1024: { top: '50%', left: '100%', transform: 'translateY(-50%)', marginLeft: '6px' },
+      1440: { top: '50%', left: '100%', transform: 'translateY(-50%)', marginLeft: '8px' },
+      2560: { top: '50%', left: '100%', transform: 'translateY(-50%)', marginLeft: '10px' },
+    }
+  },
+  {
+    name: 'Brisbane',
+    pos: {
+      320: { top: '63%', left: '73%' },
+      375: { top: '64%', left: '72%' },
+      425: { top: '66%', left: '73%' },
+      768: { top: '50%', left: '72%' },
+      1024: { top: '54%', left: '67.5%' },
+      1440: { top: '53.5%', left: '67.5%' },
+      2560: { top: '53%', left: '66.5%' },
+    },
+    labelPos: {
+      320: { bottom: '100%', left: '50%', marginBottom: '4px', marginLeft: '-12px' },
+      375: { bottom: '100%', left: '50%', marginBottom: '4px', marginLeft: '-12px' },
+      425: { bottom: '100%', left: '50%', marginBottom: '4px', marginLeft: '-12px' },
+      768: { bottom: '100%', left: '50%', marginBottom: '4px', marginLeft: '-12px' },
+      1024: { bottom: '100%', left: '50%', marginBottom: '4px', marginLeft: '-12px' },
+      1440: { bottom: '100%', left: '50%', marginBottom: '5px', marginLeft: '-14px' },
+      2560: { bottom: '100%', left: '50%', marginBottom: '6px', marginLeft: '-16px' },
+    }
+  },
+];
+
+/* Inline internal link used inside paragraphs (React Router client-side navigation) */
+const InternalLink = ({ href, children }) => (
+  <Link
+    to={href}
+    className="font-semibold text-[#E8890C] underline underline-offset-4 decoration-[#E8890C]/50 hover:text-[#0F3D2E] hover:decoration-[#0F3D2E] transition-colors duration-200"
+  >
+    {children}
+  </Link>
+);
+
+// Our Process: 4 steps that travel west to east across the same cities as the hero map
+const processSteps = [
+  {
+    title: 'Discover',
+    icon: Search,
+    desc: (
+      <>
+        A free strategy call to understand your business, your customers and what you want to achieve.{' '}
+        <InternalLink href="/contact">Book your free call</InternalLink>.
+      </>
+    ),
+  },
+  {
+    title: 'Design',
+    icon: PenTool,
+    desc: (
+      <>
+        We map the user journey and design your{' '}
+        <InternalLink href="/services/creative-solutions">UI/UX design system</InternalLink> so you can review and approve every screen up front.
+      </>
+    ),
+  },
+  {
+    title: 'Build',
+    icon: Code2,
+    desc: (
+      <>
+        Our developers engineer{' '}
+        <InternalLink href="/services/software-application-development">custom cloud software</InternalLink> and <InternalLink href="/services/app-development">mobile solutions</InternalLink> with built-in <InternalLink href="/services/digital-marketing-solutions">SEO & AEO protocols</InternalLink> into every line of code.
+      </>
+    ),
+  },
+  {
+    title: 'Support',
+    icon: Headphones,
+    desc: (
+      <>
+        We go live with you, then stay on for 24/7{' '}
+        <InternalLink href="/services/back-office-support">back office & technical upkeep</InternalLink> to improve and grow your product as your business expands.
+      </>
+    ),
+  },
+];
+
+// Dashed "kangaroo hop" arcs between the 4 pins (pins sit at 12.5%, 37.5%, 62.5%, 87.5% of the width)
+const processArcs = [
+  'M125 56 Q250 -22 375 56',
+  'M375 56 Q500 -22 625 56',
+  'M625 56 Q750 -22 875 56',
+];
+
+// Helper to convert React style object to CSS string
+const objToCss = (obj) => {
+  if (!obj) return '';
+  return Object.entries(obj).map(([k, v]) => `${k.replace(/([A-Z])/g, "-$1").toLowerCase()}: ${v};`).join(' ');
+};
+
+/* Section tag: bold uppercase text + short rounded underline.
+   Defaults are gold text / forest green line; pass textClass and lineClass to override. */
+const SectionTag = ({
+  children,
+  align = 'center',
+  className = '',
+  textClass = 'text-[#E8890C]',
+  lineClass = 'bg-[#0F3D2E]',
+}) => (
+  <div className={`flex flex-col ${align === 'center' ? 'items-center' : 'items-start'} ${className}`}>
+    <span
+      className={`text-xs sm:text-sm lg:text-base 4xl:text-lg font-bold uppercase tracking-[0.2em] ${textClass} ${align === 'center' ? 'pl-[0.2em] text-center' : 'text-left'
+        }`}
+    >
+      {children}
+    </span>
+    <span className={`mt-2 sm:mt-2.5 block w-10 sm:w-12 lg:w-14 4xl:w-16 h-[3px] rounded-full ${lineClass}`}></span>
+  </div>
+);
+
+const AnimatedText = ({ text, delay = 0, className = "", isMobile = false }) => {
+  if (isMobile) {
+    return <span className={className}>{text}</span>;
+  }
+  return (
+    <motion.span
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay, ease: "easeOut" }}
+      className={`inline-block ${className}`}
+    >
+      {text}
+    </motion.span>
+  );
+};
+
+const AnimatedCharacters = ({ text, delay = 0, className = "" }) => {
+  return (
+    <span className={className}>
+      {text}
+    </span>
+  );
+};
+
+/* Accepts either a plain `text` string or JSX `children` (so links can live inside the paragraph). */
+const AnimatedTextScroll = ({ text, children, delay = 0, className = "" }) => {
+  return (
+    <motion.span
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.4, delay, ease: "easeOut" }}
+      className={`inline-block ${className}`}
+    >
+      {children ?? text}
+    </motion.span>
+  );
+};
+
+const ROTATING_WORDS = [
+  'App Development',
+  'Email',
+  'Digital',
+  'Software',
+  'E-Commerce',
+  'Maintenance'
+];
+
+export default function Home() {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile, { passive: true });
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    let intervalId;
+    const timeoutId = setTimeout(() => {
+      setWordIndex(1);
+
+      intervalId = setInterval(() => {
+        setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
+      }, 3000);
+    }, 2500);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
+  return (
+    <div className="flex-1 w-full flex flex-col min-h-screen">
+
+      {/* Hero Banner Section with Comprehensive Screen Responsiveness: 320px Mobile, 768px Tablet, 1024px & 1440px Laptop, 2560px Ultra-Wide */}
+      <section
+        id="hero"
+        className="relative w-full h-[100svh] min-h-[520px] xs:min-h-[560px] sm:min-h-[600px] md:min-h-[640px] lg:min-h-[700px] 2xl:min-h-[780px] 4xl:min-h-[1000px] flex flex-col items-center justify-start pt-[140px] xs:pt-[150px] sm:pt-[160px] md:pt-[200px] lg:pt-[180px] 2xl:pt-[200px] 4xl:pt-[260px] overflow-hidden"
+      >
+        {/* Background Image with absolute positioning: optimized for mobile (320px-767px), tablet (768px-1023px), laptop (1024px-1440px), ultrawide (2560px) */}
+        <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+          <picture className="absolute inset-0 w-full h-full pointer-events-none z-0 select-none">
+            <source media="(min-width: 1024px)" srcSet="/banner1.png" />
+            <source media="(min-width: 768px)" srcSet="/tabview.png" />
+            <img
+              src="/mobileviewbanner.png"
+              alt="Australia Map Hero Background"
+              className="w-full h-full object-cover object-center pointer-events-none select-none"
+            />
+          </picture>
+
+          {/* Map Locations Responsive Styles for All Breakpoints */}
+          <style>
+            {mapLocations.map((loc, i) => `
+              .pin-${i} { top: ${loc.pos[320].top}; left: ${loc.pos[320].left}; }
+              .label-${i} { ${objToCss(loc.labelPos[320])} }
+
+              @media (min-width: 375px) {
+                .pin-${i} { top: ${loc.pos[375].top}; left: ${loc.pos[375].left}; }
+                .label-${i} { ${objToCss(loc.labelPos[375])} }
+              }
+              @media (min-width: 425px) {
+                .pin-${i} { top: ${loc.pos[425].top}; left: ${loc.pos[425].left}; }
+                .label-${i} { ${objToCss(loc.labelPos[425])} }
+              }
+              @media (min-width: 768px) {
+                .pin-${i} { top: ${loc.pos[768].top}; left: ${loc.pos[768].left}; }
+                .label-${i} { ${objToCss(loc.labelPos[768])} }
+              }
+              @media (min-width: 1024px) {
+                .pin-${i} { top: ${loc.pos[1024].top}; left: ${loc.pos[1024].left}; }
+                .label-${i} { ${objToCss(loc.labelPos[1024])} }
+              }
+              @media (min-width: 1440px) {
+                .pin-${i} { top: ${loc.pos[1440].top}; left: ${loc.pos[1440].left}; }
+                .label-${i} { ${objToCss(loc.labelPos[1440])} }
+              }
+              @media (min-width: 2560px) {
+                .pin-${i} { top: ${loc.pos[2560]?.top || loc.pos[1440].top}; left: ${loc.pos[2560]?.left || loc.pos[1440].left}; }
+                .label-${i} { ${objToCss(loc.labelPos[2560] || loc.labelPos[1440])} }
+              }
+            `).join('')}
+          </style>
+
+          {/* Unified Map Locations */}
+          <div className="absolute inset-0 w-full h-full">
+            {mapLocations.map((loc, index) => (
+              <motion.div
+                key={loc.name}
+                initial={isMobile ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.35, delay: isMobile ? 0 : 0.08 + index * 0.06, ease: "easeOut" }}
+                className={`pin-${index} absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center md:gap-2`}
+              >
+                <div className="relative flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 xs:w-5 xs:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 2xl:w-8 2xl:h-8 4xl:w-11 4xl:h-11 text-[#2563eb] drop-shadow-[0_4px_6px_rgba(37,99,235,0.6)] relative z-10 transition-transform hover:scale-110">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
+
+                  {/* Unified Responsive Label – city names in forest green */}
+                  <span
+                    className={`label-${index} absolute text-[8px] xs:text-[9px] md:text-[10px] lg:text-[11px] 2xl:text-[12px] 4xl:text-[15px] font-semibold text-[#0F3D2E] bg-white/95 backdrop-blur-md px-1.5 py-0.5 md:px-3 md:py-1 4xl:px-4 4xl:py-1.5 rounded-md shadow-sm md:shadow-[0_4px_12px_rgba(0,0,0,0.15)] 4xl:shadow-[0_6px_18px_rgba(0,0,0,0.2)] border border-white/60 whitespace-normal sm:whitespace-nowrap tracking-wide z-20`}
+                  >
+                    {loc.name}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Container: Fully Responsive Width and Typography */}
+        <div className="relative z-20 max-w-6xl 2xl:max-w-7xl 4xl:max-w-[2100px] mx-auto px-3 xs:px-4 sm:px-6 md:px-8 lg:px-12 4xl:px-16 flex flex-col items-center text-center w-full">
+          <div className="mb-4 xs:mb-5 sm:mb-6 md:mb-8 4xl:mb-14 w-full flex flex-col items-center px-3 sm:px-5 md:px-6">
+            <div className="mb-3 sm:mb-4 md:mb-5 4xl:mb-8 w-full max-w-5xl">
+              {/* 1) Tagline */}
+              <p
+                className="
+                  !text-[#7C2D12]
+                  font-extrabold
+                  tracking-[0.15em] md:tracking-[0.2em]
+                  uppercase
+                  text-center
+                  leading-relaxed
+                  text-[10px]
+                  xs:text-[11px]
+                  sm:text-[12px]
+                  md:text-[13px]
+                  lg:text-sm
+                  xl:text-sm
+                  2xl:text-base
+                  4xl:text-lg
+                  px-2 sm:px-4
+                  break-words
+                  [text-wrap:balance]
+                  drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]
+                "
+              >
+                <AnimatedText
+                  text="Digital Solutions That Increase AI Search Visibility · AEO · GEO"
+                  delay={0.05}
+                  isMobile={isMobile}
+                />
+              </p>
+            </div>
+          </div>
+
+          {/* Heading */}
+          <h1
+            className="text-[clamp(1rem,2.1vw,2.5rem)] font-extrabold !text-white tracking-tight leading-[1.2] w-full text-center flex flex-col items-center px-2 sm:px-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+          >
+            {/* 2) "Powering Australian Businesses with": WHITE */}
+            <AnimatedText
+              text="Powering Australian Businesses with"
+              delay={0.12}
+              isMobile={isMobile}
+              className="!text-white whitespace-normal lg:whitespace-nowrap leading-tight md:leading-[1.1]"
+            />
+
+            {/* 3) WHITE + YELLOW + WHITE */}
+            <div
+              className="mt-1.5 xs:mt-2 sm:mt-2.5 md:mt-3 4xl:mt-5 flex flex-wrap items-center justify-center gap-x-[0.25em] text-[clamp(1.4rem,3.3vw,3.75rem)] font-extrabold leading-[1.2]"
+            >
+              {isMobile ? (
+                <>
+                  <span className="!text-white inline-block">Smarter</span>
+                  <span className="inline-flex items-center justify-center relative overflow-hidden py-1 px-1">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={wordIndex}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        className="!text-[#FFC400] inline-block whitespace-normal sm:whitespace-nowrap"
+                      >
+                        {ROTATING_WORDS[wordIndex]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </span>
+                  <span className="!text-white inline-block">Solutions</span>
+                </>
+              ) : (
+                <>
+                  <motion.span
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: 0.18, ease: "easeOut" }}
+                    className="!text-white inline-block"
+                  >
+                    Smarter
+                  </motion.span>
+
+                  <motion.span
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: 0.24, ease: "easeOut" }}
+                    className="inline-flex items-center justify-center relative overflow-hidden py-1 px-1"
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={wordIndex}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                        className="!text-[#FFC400] inline-block whitespace-normal sm:whitespace-nowrap"
+                      >
+                        {ROTATING_WORDS[wordIndex]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </motion.span>
+
+                  <motion.span
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: 0.30, ease: "easeOut" }}
+                    className="!text-white inline-block"
+                  >
+                    Solutions
+                  </motion.span>
+                </>
+              )}
+            </div>
+          </h1>
+        </div>
+      </section>
+
+      {/* About Us Section */}
+      <section className="relative w-full py-16 lg:py-24 overflow-hidden bg-white">
+        {/* Background image responsive: mobile vs desktop */}
+        <picture className="absolute inset-0 w-full h-full pointer-events-none z-0 select-none opacity-90">
+          <source media="(min-width: 1024px)" srcSet="/about/bg.png" />
+          <img
+            src="/about/mobileview-bg.png"
+            alt="About Us Background"
+            className="w-full h-full object-cover object-top lg:object-center pointer-events-none select-none"
+          />
+        </picture>
+
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-4 xl:gap-8">
+
+            {/* Left Content */}
+            <div className="w-full lg:w-[30%] xl:w-[32%] flex flex-col items-start z-20">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.4 }}
+                className="mb-4"
+              >
+                {/* "Who We Are": gold text + gold underline */}
+                <SectionTag align="left" textClass="text-[#E8890C]" lineClass="bg-[#E8890C]">Who We Are</SectionTag>
+              </motion.div>
+              <p className="text-[#0F3D2E] text-base lg:text-lg 4xl:text-2xl mb-8 4xl:mb-12 leading-relaxed font-normal max-w-sm xl:max-w-md 4xl:max-w-2xl">
+                <AnimatedTextScroll delay={0.3}>
+                  You bring the vision. We engineer digital solutions that increase AI search visibility, accelerate growth through{' '}
+                  <InternalLink href="/services/aeo">AEO</InternalLink> and{' '}
+                  <InternalLink href="/services/geo">GEO</InternalLink>, and carry your business forward.
+                </AnimatedTextScroll>
+              </p>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+              >
+                {/* Button: forest green first, gold on hover */}
+                <a href="/about" className="group inline-flex items-center justify-center px-6 py-3 4xl:px-10 4xl:py-5 4xl:text-xl border-2 border-[#0F3D2E] text-[#0F3D2E] font-semibold rounded-xl hover:bg-[#E8890C] hover:border-[#E8890C] hover:text-white transition-all duration-300">
+                  Discover Who We Are
+                  <ArrowRight className="w-5 h-5 4xl:w-7 4xl:h-7 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
+                </a>
+              </motion.div>
+            </div>
+
+            {/* Center Kangaroo Image */}
+            <div className="w-full lg:w-[36%] xl:w-[40%] flex justify-center relative z-10 mt-8 lg:mt-0">
+              <motion.img
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                src="/about/animal.png"
+                alt="Australian Technology"
+                className="w-full max-w-[400px] md:max-w-[550px] lg:max-w-[650px] xl:max-w-[750px] h-auto object-contain transform transition-all duration-500 md:scale-[1.15] lg:scale-[1.15] xl:scale-[1.25] hover:scale-[1.05] md:hover:scale-[1.20] lg:hover:scale-[1.22] xl:hover:scale-[1.32] origin-bottom lg:origin-center drop-shadow-2xl hover:drop-shadow-[0_25px_40px_rgba(232,137,12,0.4)] hover:-translate-y-2 relative z-20 cursor-pointer"
+              />
+            </div>
+
+            {/* Right Features */}
+            <div className="w-full lg:w-[34%] xl:w-[28%] flex flex-col gap-6 lg:pl-6 xl:pl-10 z-20 mt-12 lg:mt-0">
+
+              {/* Feature 1 */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="flex items-start gap-3 sm:gap-5 pb-5 sm:pb-6 border-b border-[#0F3D2E]/15 group"
+              >
+                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 4xl:w-16 4xl:h-16 flex items-center justify-center mt-0.5 4xl:mt-2">
+                  <Lightbulb className="w-8 h-8 sm:w-10 sm:h-10 4xl:w-12 4xl:h-12 text-[#E8890C] transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[#0F3D2E] text-[14px] xs:text-[15px] sm:text-[17px] xl:text-[19px] 4xl:text-[26px] font-bold mb-1.5 4xl:mb-3 tracking-tight break-normal">01 — Carry Your Idea</h3>
+                  <p className="text-[#111111] leading-relaxed text-[13px] xs:text-[14px] xl:text-[15px] 4xl:text-[20px] font-normal">
+                    You bring the vision. We turn your idea into a powerful digital solution.
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Feature 2 */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="flex items-start gap-3 sm:gap-5 pb-5 sm:pb-6 border-b border-[#0F3D2E]/15 group"
+              >
+                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 4xl:w-16 4xl:h-16 flex items-center justify-center mt-0.5 4xl:mt-2">
+                  <Rocket className="w-8 h-8 sm:w-10 sm:h-10 4xl:w-12 4xl:h-12 text-[#E8890C] transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[#0F3D2E] text-[14px] xs:text-[15px] sm:text-[17px] xl:text-[19px] 4xl:text-[26px] font-bold mb-1.5 4xl:mb-3 tracking-tight break-normal">02 — Boost AI Search Visibility</h3>
+                  <p className="text-[#111111] leading-relaxed text-[13px] xs:text-[14px] xl:text-[15px] 4xl:text-[20px] font-normal">
+                    Targeted digital solutions that increase AI search visibility, integrating AEO and GEO to dominate conversational search engines.
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Feature 3 */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="flex items-start gap-3 sm:gap-5 group"
+              >
+                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 4xl:w-16 4xl:h-16 flex items-center justify-center mt-0.5 4xl:mt-2">
+                  <RefreshCw className="w-8 h-8 sm:w-10 sm:h-10 4xl:w-12 4xl:h-12 text-[#E8890C] transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[#0F3D2E] text-[14px] xs:text-[15px] sm:text-[17px] xl:text-[19px] 4xl:text-[26px] font-bold mb-1.5 4xl:mb-3 tracking-tight break-normal">03 — Keep Moving Forward</h3>
+                  <p className="text-[#111111] leading-relaxed text-[13px] xs:text-[14px] xl:text-[15px] 4xl:text-[20px] font-normal">
+                    We build, support, and evolve your technology as your business grows.
+                  </p>
+                </div>
+              </motion.div>
+
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <ServicesSection />
+      <WhyChooseUsSection />
+      <ProductShowcase />
+      <SectorsSection />
+
+      {/* ===================== OUR PROCESS SECTION ===================== */}
+      <section className="relative w-full overflow-hidden py-16 sm:py-20 lg:py-24 4xl:py-32 bg-gradient-to-b from-white via-[#F3F7FF] to-white">
+        {/* Soft colour glows (no dots) */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0F3D2E]/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 -right-40 w-[28rem] h-[28rem] rounded-full bg-[#E8890C]/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 left-1/3 w-80 h-80 rounded-full bg-[#E8890C]/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-[1440px] 4xl:max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+          {/* Heading */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.5 }}
+            className="text-center max-w-3xl 4xl:max-w-5xl mx-auto mb-12 lg:mb-8 4xl:mb-14"
+          >
+            <SectionTag align="center" className="mb-4">Our Process</SectionTag>
+            <h2 className="text-[clamp(1.75rem,4vw,3rem)] 4xl:text-[4rem] font-extrabold text-[#E8890C] leading-[1.15] tracking-tight">
+              Your journey, <span className="text-[#0F3D2E]">mapped out</span><br />step by step
+            </h2>
+            <p className="mt-4 text-[#111111]/80 text-sm sm:text-base 4xl:text-xl leading-relaxed">
+              From discovery to deployment, our digital solutions increase AI search visibility with structured AEO and GEO frameworks at every milestone.
+            </p>
+          </motion.div>
+
+          {/* Desktop journey row: glowing stops joined by dashed hop arcs */}
+          <div className="hidden lg:block relative h-[80px] 4xl:h-[96px]">
+            <svg
+              className="absolute inset-0 w-full h-full overflow-visible"
+              viewBox="0 0 1000 80"
+              preserveAspectRatio="none"
+              fill="none"
+              aria-hidden="true"
+            >
+              {processArcs.map((d, i) => (
+                <motion.path
+                  key={i}
+                  d={d}
+                  stroke="#0F3D2E"
+                  strokeWidth="2.5"
+                  strokeDasharray="7 7"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  whileInView={{ pathLength: 1, opacity: 1 }}
+                  viewport={{ once: true, margin: '-50px' }}
+                  transition={{ duration: 0.8, delay: 0.3 + i * 0.35, ease: 'easeInOut' }}
+                />
+              ))}
+            </svg>
+
+            {processSteps.map((s, i) => (
+              <motion.div
+                key={s.title}
+                initial={{ opacity: 0, scale: 0.4 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ type: 'spring', bounce: 0.5, duration: 0.6, delay: 0.15 + i * 0.35 }}
+                className="absolute top-[56px] -translate-x-1/2 -translate-y-1/2"
+                style={{ left: `${12.5 + i * 25}%` }}
+              >
+                <span className="absolute inset-0 rounded-full bg-[#0F3D2E]/40 animate-ping" style={{ animationDuration: '2.6s' }} />
+                <span className="relative flex items-center justify-center w-7 h-7 4xl:w-9 4xl:h-9 rounded-full bg-white ring-[3px] ring-[#0F3D2E] shadow-[0_6px_16px_rgba(15,61,46,0.35)]">
+                  <span className="w-2.5 h-2.5 4xl:w-3 4xl:h-3 rounded-full bg-[#E8890C]" />
+                </span>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Cards: vertical timeline on mobile/tablet, 4 staggered columns on desktop */}
+          <div className="relative max-w-2xl lg:max-w-none mx-auto">
+            <div className="lg:hidden absolute left-[13px] top-6 bottom-6 border-l-2 border-dashed border-[#0F3D2E]/60" aria-hidden="true" />
+
+            <ol className="relative pl-12 space-y-6 sm:pl-14 lg:pl-0 lg:space-y-0 lg:grid lg:grid-cols-4">
+              {processSteps.map((s, i) => {
+                const Icon = s.icon;
+                return (
+                  <motion.li
+                    key={s.title}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '-60px' }}
+                    transition={{ duration: 0.5, delay: 0.1 + i * 0.12, ease: 'easeOut' }}
+                    className="relative lg:px-3 xl:px-3.5 4xl:px-5 lg:even:mt-10 4xl:even:mt-14"
+                  >
+                    {/* Mobile stop */}
+                    <span className="lg:hidden absolute -left-12 sm:-left-14 top-7 flex items-center justify-center w-7 h-7 rounded-full bg-white ring-[3px] ring-[#0F3D2E] shadow-[0_6px_16px_rgba(15,61,46,0.35)]">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#E8890C]" />
+                    </span>
+
+                    <article className="group relative h-full overflow-hidden rounded-3xl bg-white/90 backdrop-blur border border-[#E8890C]/10 shadow-[0_12px_32px_rgba(232,137,12,0.09)] p-6 xl:p-7 4xl:p-10 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_22px_48px_rgba(232,137,12,0.2)] hover:border-[#0F3D2E]/40">
+                      {/* Big faint icon as a decorative corner */}
+                      <Icon
+                        className="absolute -bottom-5 -right-5 w-32 h-32 4xl:w-44 4xl:h-44 -rotate-12 text-[#E8890C]/[0.06] transition-all duration-500 group-hover:text-[#0F3D2E]/[0.14] group-hover:rotate-0 group-hover:scale-110 pointer-events-none"
+                        strokeWidth={1.2}
+                        aria-hidden="true"
+                      />
+                      {/* Glow on hover */}
+                      <div className="absolute -top-16 -left-16 w-40 h-40 rounded-full bg-[#0F3D2E]/0 group-hover:bg-[#0F3D2E]/15 blur-2xl transition-all duration-500 pointer-events-none" />
+
+                      <div className="relative">
+                        {/* Icon + title */}
+                        <div className="flex items-center gap-3.5 mb-3 4xl:mb-5">
+                          <div className="w-12 h-12 4xl:w-16 4xl:h-16 shrink-0 rounded-2xl bg-gradient-to-br from-[#E8890C] to-[#F2A33A] text-white flex items-center justify-center shadow-[0_8px_18px_rgba(232,137,12,0.35)] transition-all duration-300 group-hover:-rotate-6 group-hover:scale-105 group-hover:from-[#0F3D2E] group-hover:to-[#0F3D2E] group-hover:shadow-[0_8px_18px_rgba(15,61,46,0.4)]">
+                            <Icon className="w-6 h-6 4xl:w-8 4xl:h-8" strokeWidth={1.8} />
+                          </div>
+                          <h3 className="text-[#E8890C] font-extrabold text-xl xl:text-2xl 4xl:text-4xl tracking-tight">{s.title}</h3>
+                        </div>
+
+                        {/* Accent line grows on hover */}
+                        <div className="w-8 group-hover:w-20 h-[3px] rounded-full bg-[#0F3D2E] mb-3 4xl:mb-5 transition-all duration-500" />
+
+                        {/* Paragraph (desc is JSX with internal links) */}
+                        <p className="text-[#111111]/80 text-[14px] xl:text-[15px] 4xl:text-xl leading-relaxed">{s.desc}</p>
+                      </div>
+                    </article>
+                  </motion.li>
+                );
+              })}
+            </ol>
+          </div>
+        </div>
+      </section>
+      {/* =================== END OUR PROCESS SECTION =================== */}
+
+      <AsymmetricGallerySection />
+      <CtaSection />
+      <OurClientsSection />
+      <TestimonialsSection />
+    </div>
+  );
+}
